@@ -1,5 +1,5 @@
 module.exports = (robot) => {
-  robot.on('pull_request.opened', receive);
+  robot.on(['pull_request.opened', 'pull_request.reopened'], receive);
   async function receive(context) {
     // Get all issues for repo with user as creator
     const response = await context.github.issues.getForRepo(context.repo({
@@ -19,52 +19,13 @@ module.exports = (robot) => {
         file.map(element => {
           bodyresults.push(createCommentFromFile(file));
         });
-        context.github.issues.createComment(context.issue({
-          body: "Test"
-        }));
-        console.log(bodyresults);
-      }).catch((err) => {
-        console.log(err)
-      });
-    } catch (err) {
-      if (err.code !== 404) {
-        throw err;
-      }
-    }
-  }
-};
-
-module.exports = (robot) => {
-  robot.on('pull_request.reopened', receive);
-
-  async function receive(context) {
-    // Get all issues for repo with user as creator
-    const response = await context.github.issues.getForRepo(context.repo({
-      state: 'all',
-      creator: context.payload.pull_request.user.login
-    }));
-
-    const countPR = response.data.filter(data => data.pull_request);
-    try {
-
-      let repo = context.repo();
-      const files = await context.github.pullRequests.getFiles(context.issue());
-      let profn = []
-
-      console.log(files);
-      files.data.map(element => {
-        profn.push(downloadFile(context, element));
-      });
-
-      let bodyresults = []
-      Promise.all(profn).then((file) => {
-        file.map(element => {
-          bodyresults.push(createCommentFromFile(file));
+        bodyresults.map(element => {
+          if (element != null && element != undefined) {
+            context.github.issues.createComment(context.issue({
+              body: `File: ${element.title} Results: ${element.result}`
+            }));
+          }
         });
-        context.github.issues.createComment(context.issue({
-          body: "Test"
-        }));
-        console.log(bodyresults);
       }).catch((err) => {
         console.log(err)
       });
